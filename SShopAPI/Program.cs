@@ -1,9 +1,7 @@
 using Core.Abstractions;
-using Core.Entities;
 using Infrastructure.Data;
 using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
-using SShopAPI.DTOs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +14,12 @@ builder.Services.AddControllers();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<SS_DbContext>();
+    dbContext.Database.Migrate();
+}
 
 app.UseHttpsRedirection();
 

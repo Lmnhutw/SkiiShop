@@ -1,14 +1,12 @@
 ﻿using Core.Abstractions;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Services
 {
     public class Repository<T> : IRepository<T> where T : class
     {
         private readonly DbContext _context;
-        private readonly DbSet<T> _dbSet; 
+        private readonly DbSet<T> _dbSet;
 
         public Repository(DbContext context)
         {
@@ -26,26 +24,34 @@ namespace Infrastructure.Services
             return await _dbSet.FindAsync(id);
         }
 
-        public async Task AddAsync(T entity)
+        public void Add(T entity)
         {
-            await _dbSet.AddAsync(entity);
-            await _context.SaveChangesAsync();
+            _dbSet.Add(entity);
         }
 
-        public async Task UpdateAsync(T entity)
+        public void Update(T entity)
         {
             _dbSet.Update(entity);
-            await _context.SaveChangesAsync();
+            //_dbSet.Entry(entity).State = EntityState.Modified;
         }
 
-        public async Task DeleteAsync(int id)
+        public void Delete(int id)
         {
-            var entity = await GetByIdAsync(id);
+            var entity = _dbSet.Find(id);
             if (entity != null)
             {
                 _dbSet.Remove(entity);
-                await _context.SaveChangesAsync();
             }
+        }
+
+        public async Task<bool> SaveChanges()
+        {
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> ItemExists(int id)
+        {
+            return await _dbSet.FindAsync(id) != null;
         }
     }
 }

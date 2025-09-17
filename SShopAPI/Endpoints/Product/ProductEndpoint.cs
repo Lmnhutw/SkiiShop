@@ -1,7 +1,6 @@
 ﻿using Core.Abstractions;
 using Core.Entities;
 using SShopAPI.DTOs;
-using Microsoft.AspNetCore.Builder;
 
 namespace SShopAPI.Endpoints
 {
@@ -11,53 +10,30 @@ namespace SShopAPI.Endpoints
         {
             app.MapGet("/products", async (int? id, IRepository<Product> repo) =>
             {
-            if (id is null)
-            {
-                var products = await repo.GetAllAsync();
-                var productDtos = products
-                    .Where(p => p.IsVisible) // visible flag
-                    .Select(p => new ProductDto
-                    {
-                        Name = p.Name,
-                        Price = p.Price,
-                        Description = p.Description,
-                        PictureUrl = p.PictureUrl,
-                        Brand = p.Brand,
-                        Quantity = p.Quantity,
-                        IsVisible = p.IsVisible,
-                        CreatedAt = p.CreatedAt
-                    });
+                if (id is null)
+                {
+                    var products = await repo.GetAllAsync();
 
-                return Results.Ok(productDtos);
-            }
+                    var visibleProducts = products
+                        .Where(p => p.IsVisible); // visible flag
+
+                    return Results.Ok(visibleProducts);
+                }
 
                 // find by id
                 var product = await repo.GetByIdAsync(id.Value);
                 if (product is null)
                 {
-                    return Results.NotFound(); 
+                    return Results.NotFound();
                 }
 
                 if (!product.IsVisible)
                 {
                     return Results.Ok(); // visible flag
-                } 
+                }
 
-                var dto = new ProductDto
-                {
-                    Name = product.Name,
-                    Price = product.Price,
-                    Description = product.Description,
-                    PictureUrl = product.PictureUrl,
-                    Brand = product.Brand,
-                    Quantity = product.Quantity,
-                    IsVisible = product.IsVisible,
-                    CreatedAt = product.CreatedAt
-                };
-
-                return Results.Ok(dto);
+                return Results.Ok(product);
             });
-
 
             app.MapPost("/products/create", async (ProductDto productDto, IRepository<Product> repo) =>
             {
@@ -71,30 +47,36 @@ namespace SShopAPI.Endpoints
                     Brand = productDto.Brand,
                     Quantity = productDto.Quantity,
                     IsVisible = productDto.IsVisible,
-                    CreatedAt = productDto.CreatedAt
+
+                    // BaseEntity props
+                    CreatedAt = DateTime.Now,
+                    //CreatedBy = UserLoginInfo,
+                    UpdateAt = DateTime.Now,
+                    // UpdatedBy = username
                 };
-                await repo.AddAsync(product);
+                repo.Add(product);
+                await repo.SaveChanges();
                 return Results.Created($"/products/create/{product.Id}", product);
             });
 
             app.MapPut("/products/updates/{id:int}", async (int id, ProductDto productDto, IRepository<Product> repo) =>
-        
+
             {
-               
-                var existing = await repo.GetByIdAsync(id);
-                if (existing is null) return Results.NotFound();
-    
+                var existingProduct = await repo.GetByIdAsync(id);
+                if (existingProduct is null) return Results.NotFound();
+                var updateProduct = existingProduct;
+
                 // Update properties from DTO
-                existing.Name = productDto.Name;
-                existing.Price = productDto.Price;
-                existing.Description = productDto.Description;
-                existing.PictureUrl = productDto.PictureUrl;
-                existing.Brand = productDto.Brand;
-                existing.Quantity = productDto.Quantity;
-                existing.IsVisible = productDto.IsVisible;
-            
-                await repo.UpdateAsync(existing);
-                return Results.Ok(existing);
+                updateProduct.Name = productDto.Name;
+                updateProduct.Price = productDto.Price;
+                updateProduct.Description = productDto.Description;
+                updateProduct.PictureUrl = productDto.PictureUrl;
+                updateProduct.Brand = productDto.Brand;
+                updateProduct.Quantity = productDto.Quantity;
+                updateProduct.IsVisible = productDto.IsVisible;
+
+                repo.Add(updateProduct);
+                return Results.Ok(updateProduct);
             });
 
             app.MapDelete("/products/delete/{id:int}", async (int id, IRepository<Product> repo) =>
@@ -102,7 +84,11 @@ namespace SShopAPI.Endpoints
                 var existing = await repo.GetByIdAsync(id);
                 if (existing is null) return Results.NotFound();
 
-                await repo.DeleteAsync(id);
+                // var hasOrders = false; // TODO: Check if product is associated with any orders
+                var deletedProduct = existing;
+
+                repo.Delete(deletedProduct);
+                await repo.SaveChanges();
                 return Results.NoContent();
             });
         }
