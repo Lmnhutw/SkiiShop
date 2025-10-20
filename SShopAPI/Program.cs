@@ -16,11 +16,21 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+try
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<SS_DbContext>();
-    dbContext.Database.Migrate();
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<SS_DbContext>();
+        dbContext.Database.Migrate();
+    }
 }
+catch (Exception ex)
+{
+
+    Console.WriteLine($"An error occurred while migrating the database: {ex.Message}");
+    throw;
+}
+
 
 app.UseHttpsRedirection();
 

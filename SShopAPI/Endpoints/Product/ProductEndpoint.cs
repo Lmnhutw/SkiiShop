@@ -1,6 +1,8 @@
 ﻿using Core.Abstractions;
 using Core.Entities;
 using SShopAPI.DTOs;
+using System.Linq;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SShopAPI.Endpoints
 {
@@ -8,31 +10,76 @@ namespace SShopAPI.Endpoints
     {
         public static void MapProductEndpoints(this IEndpointRouteBuilder app)
         {
-            app.MapGet("/products", async (int? id, IRepository<Product> repo) =>
+            app.MapGet("/products", async (int? id, string? brand, string? type, string sort, IRepository<Product> repo) =>
             {
-                if (id is null)
+                // If ID is provided → return single product
+                if (id is not null)
                 {
-                    var products = await repo.GetAllAsync();
+                    var product = await repo.GetByIdAsync(id.Value);
+                    if (product is null || !product.IsVisible)
+                        return Results.NotFound($"Product {id} not found or not visible.");
 
-                    var visibleProducts = products
-                        .Where(p => p.IsVisible); // visible flag
-
-                    return Results.Ok(visibleProducts);
+                    return Results.Ok(product);
                 }
 
-                // find by id
-                var product = await repo.GetByIdAsync(id.Value);
-                if (product is null)
+                // No ID → get all products
+                var products = await repo.GetAllAsync();
+
+                // Base query (only visible)
+                var query = products.Where(p => p.IsVisible);
+
+                if (!string.IsNullOrWhiteSpace(brand))
                 {
-                    return Results.NotFound();
+                    query = query.Where(p => p.Brand != null &&
+                                             p.Brand.Equals(brand, StringComparison.OrdinalIgnoreCase));
                 }
 
-                if (!product.IsVisible)
+                if (!string.IsNullOrWhiteSpace(type))
                 {
-                    return Results.Ok(); // visible flag
+                    query = query.Where(p => p.Type != null &&
+                                             p.Type.Equals(type, StringComparison.OrdinalIgnoreCase));
                 }
 
-                return Results.Ok(product);
+                if (!string.IsNullOrWhiteSpace(sort))
+                {
+                    query = sort.ToLower() switch
+                    {
+                        "priceasc" => query.OrderBy(p => p.Price),
+                        "pricedesc" => query.OrderByDescending(p => p.Price),
+                        "nameasc" => query.OrderBy(p => p.Name),
+                        "namedesc" => query.OrderByDescending(p => p.Name),
+                        _ => query
+                    };
+                }
+
+                return Results.Ok(query);
+            });
+
+
+            // brands list
+            app.MapGet("/products/brands", async (IRepository<Product> repo) =>
+            {
+                var products = await repo.GetAllAsync();
+
+                var brands = products
+                    .Where(p => p.IsVisible && !string.IsNullOrWhiteSpace(p.Brand))
+                    .Select(p => p.Brand!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase);
+
+                return Results.Ok(brands);
+            });
+
+            // type list
+            app.MapGet("/products/types", async (IRepository<Product> repo) =>
+            {
+                var products = await repo.GetAllAsync();
+
+                var types = products
+                    .Where(p => p.IsVisible && !string.IsNullOrWhiteSpace(p.Type))
+                    .Select(p => p. Type!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase);
+
+                return Results.Ok(types);
             });
 
             app.MapPost("/products/create", async (ProductDto productDto, IRepository<Product> repo) =>

@@ -1,9 +1,10 @@
 ﻿using Core.Abstractions;
+using Core.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Services
 {
-    public class Repository<T> : IRepository<T> where T : class
+    public class Repository<T> : IRepository<T> where T : BaseEntity
     {
         private readonly DbContext _context;
         private readonly DbSet<T> _dbSet;
@@ -32,7 +33,7 @@ namespace Infrastructure.Services
         public void Update(T entity)
         {
             _dbSet.Update(entity);
-            //_dbSet.Entry(entity).State = EntityState.Modified;
+            _dbSet.Entry(entity).State = EntityState.Modified;
         }
 
         public void Delete(T entity)
@@ -50,7 +51,8 @@ namespace Infrastructure.Services
 
         public async Task<bool> ItemExists(int id)
         {
-            return await _dbSet.FindAsync(id) != null;
+            return await _dbSet.AnyAsync(x => x.Id == id);
+            //return await _dbSet.FindAsync(id) != null;
         }
     }
 }
