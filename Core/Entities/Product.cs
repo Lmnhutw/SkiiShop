@@ -9,7 +9,8 @@ namespace Core.Entities
         public decimal Price { get; set; }
         public string PictureUrl { get; set; } = string.Empty;
         public string Brand { get; set; }
-        public int Quantity { get; set; } = 0;
+        public string Type { get; set; }
+        public int QuantityInStock { get; set; } = 0;
 
         [Required]
         public bool IsVisible { get; set; }

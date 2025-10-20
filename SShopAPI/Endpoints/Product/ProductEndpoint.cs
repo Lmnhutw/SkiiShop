@@ -45,7 +45,8 @@ namespace SShopAPI.Endpoints
                     Description = productDto.Description,
                     PictureUrl = productDto.PictureUrl,
                     Brand = productDto.Brand,
-                    Quantity = productDto.Quantity,
+                    Type = productDto.Type,
+                    QuantityInStock = productDto.Quantity,
                     IsVisible = productDto.IsVisible,
 
                     // BaseEntity props
@@ -72,7 +73,8 @@ namespace SShopAPI.Endpoints
                 updateProduct.Description = productDto.Description;
                 updateProduct.PictureUrl = productDto.PictureUrl;
                 updateProduct.Brand = productDto.Brand;
-                updateProduct.Quantity = productDto.Quantity;
+                updateProduct.Type = productDto.Type;
+                updateProduct.QuantityInStock = productDto.Quantity;
                 updateProduct.IsVisible = productDto.IsVisible;
 
                 repo.Add(updateProduct);

@@ -35,9 +35,8 @@ namespace Infrastructure.Services
             //_dbSet.Entry(entity).State = EntityState.Modified;
         }
 
-        public void Delete(int id)
+        public void Delete(T entity)
         {
-            var entity = _dbSet.Find(id);
             if (entity != null)
             {
                 _dbSet.Remove(entity);
