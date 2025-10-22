@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: skiishop-sql
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${SQL_SERVER_PASSWORD}
+    platform: linux/amd64
+    ports:
+      - "${SQL_SERVER_PORT}:${SQL_SERVER_PORT}"
+    networks:
+      - skiishop-network
+
+  # backend:
+  # build:
+  #   context: ./SShopAPI
+  #   dockerfile: Dockerfile
+  # container_name: skiishop-backend
+  # depends_on:
+  #   - sql
+  # environment:
+  #   ASPNETCORE_ENVIRONMENT: ${APP_ENV}
+  #   SQL_SERVER_HOST: ${SQL_SERVER_HOST}
+  #   SQL_SERVER_PORT: ${SQL_SERVER_PORT}
+  #   SQL_SERVER_USER: ${SQL_SERVER_USER}
+  #   SQL_SERVER_PASSWORD: ${SQL_SERVER_PASSWORD}
+  #   SQL_SERVER_DB: ${SQL_SERVER_DB}
+  # ports:
+  #   - "5000:5000"
+  # networks:
+  #   - skiishop-network
+
+  # frontend:
+  #   build:
+  #     context: ./client
+  #     dockerfile: Dockerfile.prod
+  #   container_name: skiishop-frontend
+  #   environment:
+  #     - API_URL=http://backend:5000
+  #   ports:
+  #     - "80:80"
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - skiishop-network
+# networks:
+#   skiishop-network:
+#     driver: bridge

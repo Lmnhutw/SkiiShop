@@ -3,7 +3,14 @@ using Infrastructure.Data;
 using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
+DotNetEnv.Env.Load();
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddEnvironmentVariables();
 
 // Add services to the container.
 builder.Services.AddDbContext<SS_DbContext>(options =>
@@ -26,11 +33,9 @@ try
 }
 catch (Exception ex)
 {
-
     Console.WriteLine($"An error occurred while migrating the database: {ex.Message}");
     throw;
 }
-
 
 app.UseHttpsRedirection();
 

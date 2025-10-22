@@ -1,0 +1,19 @@
+
+# # Stage 1: Base Image
+# FROM node:18-slim
+
+# # Set Working Directory
+# WORKDIR /usr/src/app
+
+# # Install Dependencies
+# COPY package*.json ./
+# RUN npm install
+
+# # Copy Application Code
+# COPY . .
+
+# # Expose Port and Start Application
+# EXPOSE 4200
+# CMD ["npm", "start"]
+
+# #note: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
