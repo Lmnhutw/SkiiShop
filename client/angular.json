@@ -30,6 +30,7 @@
               }
             ],
             "styles": [
+              "src/tailwind.css",
               "src/styles.scss"
             ]
           },
@@ -59,11 +60,6 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
-          "options": {
-            "ssl": true,
-            "sslCert": "ssl/localhost.pem",
-            "sslKey": "ssl/localhost-key.pem"
-          },
           "configurations": {
             "production": {
               "buildTarget": "client:build:production"
