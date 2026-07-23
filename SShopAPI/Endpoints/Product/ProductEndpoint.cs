@@ -1,145 +1,153 @@
 ﻿using Core.Abstractions;
 using Core.Entities;
+using Microsoft.EntityFrameworkCore;
 using SShopAPI.DTOs;
-using System.Linq;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
-namespace SShopAPI.Endpoints
+namespace SShopAPI.Endpoints;
+
+public static class ProductEndpoint
 {
-    public static class ProductEndpoint
+    public static void MapProductEndpoints(this IEndpointRouteBuilder app)
     {
-        public static void MapProductEndpoints(this IEndpointRouteBuilder app)
+        app.MapGet("/products", async (
+            int? id,
+            string? brand,
+            string? type,
+            string? sort,
+            int? page,
+            int? pageSize,
+            IRepository<Product> repo) =>
         {
-            app.MapGet("/products", async (int? id, string? brand, string? type, string sort, IRepository<Product> repo) =>
+            if (id is not null)
             {
-                // If ID is provided → return single product
-                if (id is not null)
-                {
-                    var product = await repo.GetByIdAsync(id.Value);
-                    if (product is null || !product.IsVisible)
-                        return Results.NotFound($"Product {id} not found or not visible.");
+                var product = await repo.GetByIdAsync(id.Value);
+                return product is null || !product.IsVisible
+                    ? Results.NotFound($"Product {id} not found or not visible.")
+                    : Results.Ok(product);
+            }
 
-                    return Results.Ok(product);
-                }
-
-                // No ID → get all products
-                var products = await repo.GetAllAsync();
-
-                // Base query (only visible)
-                var query = products.Where(p => p.IsVisible);
-
-                if (!string.IsNullOrWhiteSpace(brand))
-                {
-                    query = query.Where(p => p.Brand != null &&
-                                             p.Brand.Equals(brand, StringComparison.OrdinalIgnoreCase));
-                }
-
-                if (!string.IsNullOrWhiteSpace(type))
-                {
-                    query = query.Where(p => p.Type != null &&
-                                             p.Type.Equals(type, StringComparison.OrdinalIgnoreCase));
-                }
-
-                if (!string.IsNullOrWhiteSpace(sort))
-                {
-                    query = sort.ToLower() switch
-                    {
-                        "priceasc" => query.OrderBy(p => p.Price),
-                        "pricedesc" => query.OrderByDescending(p => p.Price),
-                        "nameasc" => query.OrderBy(p => p.Name),
-                        "namedesc" => query.OrderByDescending(p => p.Name),
-                        _ => query
-                    };
-                }
-
-                return Results.Ok(query);
-            });
-
-
-            // brands list
-            app.MapGet("/products/brands", async (IRepository<Product> repo) =>
+            var currentPage = page.GetValueOrDefault(1);
+            var currentPageSize = pageSize.GetValueOrDefault(20);
+            if (currentPage < 1 || currentPageSize is < 1 or > 100)
             {
-                var products = await repo.GetAllAsync();
+                return Results.BadRequest("page must be at least 1 and pageSize must be between 1 and 100.");
+            }
 
-                var brands = products
-                    .Where(p => p.IsVisible && !string.IsNullOrWhiteSpace(p.Brand))
-                    .Select(p => p.Brand!)
-                    .Distinct(StringComparer.OrdinalIgnoreCase);
+            var query = repo.Query().Where(product => product.IsVisible);
 
-                return Results.Ok(brands);
-            });
-
-            // type list
-            app.MapGet("/products/types", async (IRepository<Product> repo) =>
+            if (!string.IsNullOrWhiteSpace(brand))
             {
-                var products = await repo.GetAllAsync();
+                query = query.Where(product => product.Brand == brand);
+            }
 
-                var types = products
-                    .Where(p => p.IsVisible && !string.IsNullOrWhiteSpace(p.Type))
-                    .Select(p => p. Type!)
-                    .Distinct(StringComparer.OrdinalIgnoreCase);
-
-                return Results.Ok(types);
-            });
-
-            app.MapPost("/products/create", async (ProductDto productDto, IRepository<Product> repo) =>
+            if (!string.IsNullOrWhiteSpace(type))
             {
-                // Map DTO to entity
-                var product = new Product
-                {
-                    Name = productDto.Name,
-                    Price = productDto.Price,
-                    Description = productDto.Description,
-                    PictureUrl = productDto.PictureUrl,
-                    Brand = productDto.Brand,
-                    Type = productDto.Type,
-                    QuantityInStock = productDto.Quantity,
-                    IsVisible = productDto.IsVisible,
+                query = query.Where(product => product.Type == type);
+            }
 
-                    // BaseEntity props
-                    CreatedAt = DateTime.Now,
-                    //CreatedBy = UserLoginInfo,
-                    UpdateAt = DateTime.Now,
-                    // UpdatedBy = username
-                };
-                repo.Add(product);
-                await repo.SaveChanges();
-                return Results.Created($"/products/create/{product.Id}", product);
-            });
-
-            app.MapPut("/products/updates/{id:int}", async (int id, ProductDto productDto, IRepository<Product> repo) =>
-
+            var orderedQuery = sort?.ToLowerInvariant() switch
             {
-                var existingProduct = await repo.GetByIdAsync(id);
-                if (existingProduct is null) return Results.NotFound();
-                var updateProduct = existingProduct;
+                "priceasc" => query.OrderBy(product => product.Price).ThenBy(product => product.Id),
+                "pricedesc" => query.OrderByDescending(product => product.Price).ThenBy(product => product.Id),
+                "nameasc" => query.OrderBy(product => product.Name).ThenBy(product => product.Id),
+                "namedesc" => query.OrderByDescending(product => product.Name).ThenBy(product => product.Id),
+                _ => query.OrderBy(product => product.Id)
+            };
 
-                // Update properties from DTO
-                updateProduct.Name = productDto.Name;
-                updateProduct.Price = productDto.Price;
-                updateProduct.Description = productDto.Description;
-                updateProduct.PictureUrl = productDto.PictureUrl;
-                updateProduct.Brand = productDto.Brand;
-                updateProduct.Type = productDto.Type;
-                updateProduct.QuantityInStock = productDto.Quantity;
-                updateProduct.IsVisible = productDto.IsVisible;
+            var totalCount = await query.CountAsync();
+            var items = await orderedQuery
+                .Skip((currentPage - 1) * currentPageSize)
+                .Take(currentPageSize)
+                .ToListAsync();
 
-                repo.Add(updateProduct);
-                return Results.Ok(updateProduct);
-            });
+            return Results.Ok(new ProductListResponse(
+                items,
+                totalCount,
+                currentPage,
+                currentPageSize,
+                (int)Math.Ceiling(totalCount / (double)currentPageSize)));
+        });
 
-            app.MapDelete("/products/delete/{id:int}", async (int id, IRepository<Product> repo) =>
+        app.MapGet("/products/brands", async (IRepository<Product> repo) =>
+        {
+            var brands = await repo.Query()
+                .Where(product => product.IsVisible && product.Brand != null && product.Brand != "")
+                .Select(product => product.Brand!)
+                .Distinct()
+                .OrderBy(brand => brand)
+                .ToListAsync();
+
+            return Results.Ok(brands);
+        });
+
+        app.MapGet("/products/types", async (IRepository<Product> repo) =>
+        {
+            var types = await repo.Query()
+                .Where(product => product.IsVisible && product.Type != null && product.Type != "")
+                .Select(product => product.Type!)
+                .Distinct()
+                .OrderBy(type => type)
+                .ToListAsync();
+
+            return Results.Ok(types);
+        });
+
+        app.MapPost("/products/create", async (ProductDto productDto, IRepository<Product> repo) =>
+        {
+            var now = DateTime.UtcNow;
+            var product = new Product
             {
-                var existing = await repo.GetByIdAsync(id);
-                if (existing is null) return Results.NotFound();
+                Name = productDto.Name,
+                Price = productDto.Price,
+                Description = productDto.Description,
+                PictureUrl = productDto.PictureUrl,
+                Brand = productDto.Brand,
+                Type = productDto.Type,
+                QuantityInStock = productDto.Quantity,
+                IsVisible = productDto.IsVisible,
+                CreatedAt = now,
+                UpdateAt = now
+            };
 
-                // var hasOrders = false; // TODO: Check if product is associated with any orders
-                var deletedProduct = existing;
+            repo.Add(product);
+            await repo.SaveChanges();
+            return Results.Created($"/products?id={product.Id}", product);
+        }).RequireAuthorization();
 
-                repo.Delete(deletedProduct);
-                await repo.SaveChanges();
-                return Results.NoContent();
-            });
-        }
+        app.MapPut("/products/updates/{id:int}", async (int id, ProductDto productDto, IRepository<Product> repo) =>
+        {
+            var product = await repo.GetByIdAsync(id);
+            if (product is null)
+            {
+                return Results.NotFound();
+            }
+
+            product.Name = productDto.Name;
+            product.Price = productDto.Price;
+            product.Description = productDto.Description;
+            product.PictureUrl = productDto.PictureUrl;
+            product.Brand = productDto.Brand;
+            product.Type = productDto.Type;
+            product.QuantityInStock = productDto.Quantity;
+            product.IsVisible = productDto.IsVisible;
+            product.UpdateAt = DateTime.UtcNow;
+
+            repo.Update(product);
+            await repo.SaveChanges();
+            return Results.Ok(product);
+        }).RequireAuthorization();
+
+        app.MapDelete("/products/delete/{id:int}", async (int id, IRepository<Product> repo) =>
+        {
+            var product = await repo.GetByIdAsync(id);
+            if (product is null)
+            {
+                return Results.NotFound();
+            }
+
+            repo.Delete(product);
+            await repo.SaveChanges();
+            return Results.NoContent();
+        }).RequireAuthorization();
     }
 }

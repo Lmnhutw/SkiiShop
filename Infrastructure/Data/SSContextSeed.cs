@@ -1,48 +1,58 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Core.Entities;
+using Microsoft.EntityFrameworkCore;
 
-namespace Infrastructure.Data
+namespace Infrastructure.Data;
+
+public static class SSContextSeed
 {
-    public class SSContextSeed
+    public static async Task SeedAsync(SS_DbContext context, string contentRootPath)
     {
-        public static async Task SeedAsync(SS_DbContext context)
+        if (await context.Products.AnyAsync())
         {
-            // Seed initial data if necessary
-            if (!context.Products.Any())
+            return;
+        }
+
+        var candidatePaths = new[]
+        {
+            Path.Combine(contentRootPath, "Data", "SeedData", "products.json"),
+            Path.Combine(contentRootPath, "..", "Infrastructure", "Data", "SeedData", "products.json")
+        };
+        var seedPath = candidatePaths.FirstOrDefault(File.Exists);
+
+        if (seedPath is null)
+        {
+            Console.WriteLine("Warning: Seed data file was not found; database was left empty.");
+            return;
+        }
+
+        try
+        {
+            var productsData = await File.ReadAllTextAsync(seedPath);
+            var products = JsonSerializer.Deserialize<List<Product>>(productsData);
+
+            if (products is null || products.Count == 0)
             {
-                try
-                {
-                    var productsData = await File.ReadAllTextAsync("../Infrastructure/Data/SeedData/products.json");
-
-                    var products = JsonSerializer.Deserialize<List<Product>>(productsData);
-
-                    if (products != null && products.Count > 0)
-                    {
-                        context.AddRange(products);
-                        await context.SaveChangesAsync();
-                        Console.WriteLine($"Successfully seeded {products.Count} products");
-                    }
-                    else
-                    {
-                        Console.WriteLine("Warning: No products found in seed data or deserialization returned null");
-                        // Optionally throw an exception if seeding is critical
-                        // throw new InvalidOperationException("Failed to load seed data");
-                    }
-                }
-                catch (FileNotFoundException)
-                {
-                    Console.WriteLine("Warning: Seed data file not found at ../Infrastructure/Data/SeedData/products.json");
-                }
-                catch (JsonException ex)
-                {
-                    Console.WriteLine($"Error: Invalid JSON in seed data - {ex.Message}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error during seeding: {ex.Message}");
-                    throw; // Re-throw if seeding is critical for your app
-                }
+                Console.WriteLine("Warning: Seed data contained no products.");
+                return;
             }
+
+            var now = DateTime.UtcNow;
+            foreach (var product in products)
+            {
+                product.IsVisible = true;
+                product.CreatedAt = product.CreatedAt == default ? now : product.CreatedAt;
+                product.UpdateAt = product.UpdateAt == default ? now : product.UpdateAt;
+            }
+
+            context.Products.AddRange(products);
+            await context.SaveChangesAsync();
+            Console.WriteLine($"Successfully seeded {products.Count} products");
+        }
+        catch (JsonException ex)
+        {
+            Console.WriteLine($"Error: Invalid JSON in seed data - {ex.Message}");
+            throw;
         }
     }
 }
