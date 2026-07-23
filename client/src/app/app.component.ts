@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+﻿import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from './layout/header/header.component';
 
@@ -9,6 +9,4 @@ import { HeaderComponent } from './layout/header/header.component';
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
-export class AppComponent {
- title = 'clientTEST';
-}
+export class AppComponent {}

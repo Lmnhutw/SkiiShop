@@ -1,0 +1,75 @@
+<main class="catalog-page">
+  <section class="catalog-intro" aria-labelledby="catalog-title">
+    <div>
+      <p class="eyebrow">SkiiShop catalogue</p>
+      <h1 id="catalog-title">Find your next line.</h1>
+      <p class="intro-copy">Browse visible stock, narrow the field, and open a product for the details that matter.</p>
+    </div>
+    <div class="catalog-count" aria-live="polite">
+      <strong>{{ totalCount }}</strong>
+      <span>products available</span>
+    </div>
+  </section>
+
+  <section class="filter-bar" aria-label="Product filters">
+    <label>
+      <span>Brand</span>
+      <select [(ngModel)]="selectedBrand" (ngModelChange)="onFilterChange()" [disabled]="filterLoading">
+        <option value="">All brands</option>
+        <option *ngFor="let brand of brands" [value]="brand">{{ brand }}</option>
+      </select>
+    </label>
+    <label>
+      <span>Type</span>
+      <select [(ngModel)]="selectedType" (ngModelChange)="onFilterChange()" [disabled]="filterLoading">
+        <option value="">All types</option>
+        <option *ngFor="let type of types" [value]="type">{{ type }}</option>
+      </select>
+    </label>
+    <label>
+      <span>Sort by</span>
+      <select [(ngModel)]="selectedSort" (ngModelChange)="onFilterChange()">
+        <option [ngValue]="undefined">Recommended</option>
+        <option value="priceasc">Price: low to high</option>
+        <option value="pricedesc">Price: high to low</option>
+        <option value="nameasc">Name: A–Z</option>
+        <option value="namedesc">Name: Z–A</option>
+      </select>
+    </label>
+    <button class="text-button" type="button" (click)="resetFilters()">Reset filters</button>
+  </section>
+
+  <p *ngIf="loading" class="state-message" role="status">Loading the catalogue…</p>
+  <div *ngIf="errorMessage && !loading" class="state-message state-error" role="alert">
+    <p>{{ errorMessage }}</p>
+    <button class="button button-dark" type="button" (click)="loadProducts()">Try again</button>
+  </div>
+  <div *ngIf="!loading && !errorMessage && products.length === 0" class="state-message">
+    <h2>No products match these filters.</h2>
+    <p>Try widening the selection or reset the filters.</p>
+    <button class="button button-dark" type="button" (click)="resetFilters()">Show all products</button>
+  </div>
+
+  <section *ngIf="!loading && !errorMessage && products.length" class="product-grid" aria-label="Products">
+    <a class="product-item" *ngFor="let product of products; trackBy: trackByProduct" [routerLink]="['/products', product.id]">
+      <div class="product-image-wrap">
+        <img [src]="product.pictureUrl || 'assets/product-placeholder.svg'" [alt]="product.name" loading="lazy" />
+        <span *ngIf="product.quantityInStock === 0" class="stock-note">Out of stock</span>
+      </div>
+      <div class="product-meta">
+        <div>
+          <p class="product-type">{{ product.type || 'Ski gear' }}</p>
+          <h2>{{ product.name }}</h2>
+        </div>
+        <strong>{{ product.price | currency:'VND':'symbol':'1.0-0' }}</strong>
+      </div>
+      <p class="product-brand">{{ product.brand || 'SkiiShop selection' }}</p>
+    </a>
+  </section>
+
+  <nav *ngIf="!loading && totalPages > 1" class="pagination" aria-label="Catalogue pages">
+    <button type="button" class="page-button" (click)="goToPage(page - 1)" [disabled]="page === 1">Previous</button>
+    <span>Page {{ page }} of {{ totalPages }}</span>
+    <button type="button" class="page-button" (click)="goToPage(page + 1)" [disabled]="page === totalPages">Next</button>
+  </nav>
+</main>

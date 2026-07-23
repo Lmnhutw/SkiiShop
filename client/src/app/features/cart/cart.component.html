@@ -1,0 +1,16 @@
+<main class="cart-page">
+  <a class="back-link" routerLink="/products">← Continue shopping</a>
+  <div class="cart-heading"><div><p class="eyebrow">Your selection</p><h1>Shopping cart.</h1></div><span>{{ cart.itemCount() }} items</span></div>
+  <section *ngIf="cart.items().length; else emptyCart" class="cart-layout">
+    <div class="cart-list">
+      <article class="cart-row" *ngFor="let item of cart.items()">
+        <img [src]="item.product.pictureUrl || 'assets/product-placeholder.svg'" [alt]="item.product.name" />
+        <div class="cart-info"><h2>{{ item.product.name }}</h2><p>{{ item.product.brand || 'SkiiShop selection' }}</p><div class="quantity"><button type="button" (click)="cart.decrease(item.product.id)" aria-label="Decrease quantity">−</button><span>{{ item.quantity }}</span><button type="button" (click)="cart.add(item.product)" aria-label="Increase quantity">+</button></div></div>
+        <strong>{{ item.product.price * item.quantity | currency:'VND':'symbol':'1.0-0' }}</strong>
+      </article>
+      <button type="button" class="text-button" (click)="cart.clear()">Clear cart</button>
+    </div>
+    <aside class="cart-summary"><p>Subtotal</p><strong>{{ cart.subtotal() | currency:'VND':'symbol':'1.0-0' }}</strong><button class="button button-dark" type="button" disabled>Checkout coming soon</button><small>Checkout and payment will be added in the next phase.</small></aside>
+  </section>
+  <ng-template #emptyCart><section class="empty-cart"><h2>Your cart is empty.</h2><p>Start with a product that makes the next run better.</p><a class="button button-dark" routerLink="/products">Browse products</a></section></ng-template>
+</main>

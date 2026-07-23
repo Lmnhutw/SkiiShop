@@ -1,0 +1,19 @@
+<main class="admin-page">
+  <div class="admin-heading">
+    <div><a routerLink="/products" class="back-link">← Catalogue</a><p class="eyebrow">Admin</p><h1>Manage products.</h1></div>
+    <form class="key-form" (ngSubmit)="saveKey()"><label for="admin-key">Admin key</label><div><input id="admin-key" type="password" name="adminKey" [(ngModel)]="keyInput" placeholder="X-Admin-Key" autocomplete="off" /><button class="button" type="submit">Save</button></div></form>
+  </div>
+  <p *ngIf="message" class="notice" role="status">{{ message }}</p>
+  <p *ngIf="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
+  <form class="editor" (ngSubmit)="submit()">
+    <div class="editor-title"><h2>{{ editingId === null ? 'Add product' : 'Edit product' }}</h2><button *ngIf="editingId !== null" type="button" class="text-button" (click)="cancelEdit()">Cancel</button></div>
+    <label>Name<input name="name" [(ngModel)]="form.name" required /></label>
+    <label>Description<textarea name="description" [(ngModel)]="form.description" rows="3"></textarea></label>
+    <div class="form-row"><label>Price<input name="price" type="number" min="0" [(ngModel)]="form.price" required /></label><label>Quantity<input name="quantity" type="number" min="0" [(ngModel)]="form.quantity" /></label></div>
+    <div class="form-row"><label>Brand<input name="brand" [(ngModel)]="form.brand" /></label><label>Type<input name="type" [(ngModel)]="form.type" /></label></div>
+    <label>Picture URL<input name="pictureUrl" [(ngModel)]="form.pictureUrl" /></label>
+    <label class="checkbox"><input name="isVisible" type="checkbox" [(ngModel)]="form.isVisible" /> Visible in catalogue</label>
+    <button class="button button-dark" type="submit">{{ editingId === null ? 'Create product' : 'Save changes' }}</button>
+  </form>
+  <section class="admin-list" aria-label="Existing products"><h2>Existing products</h2><p *ngIf="loading">Loading…</p><div class="admin-row" *ngFor="let product of products"><div><strong>{{ product.name }}</strong><span>{{ product.price | currency:'VND':'symbol':'1.0-0' }} · {{ product.quantityInStock }} in stock</span></div><div><button class="text-button" type="button" (click)="edit(product)">Edit</button><button class="danger-button" type="button" (click)="remove(product)">Delete</button></div></div></section>
+</main>

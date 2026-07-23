@@ -1,0 +1,17 @@
+﻿<main class="detail-page">
+  <a class="back-link" routerLink="/products">← Back to catalogue</a>
+  <p *ngIf="loading" class="state-message" role="status">Loading product…</p>
+  <div *ngIf="errorMessage && !loading" class="state-message" role="alert">{{ errorMessage }}</div>
+  <section *ngIf="product && !loading" class="detail-layout" aria-labelledby="product-title">
+    <div class="detail-image"><img [src]="product.pictureUrl || 'assets/product-placeholder.svg'" [alt]="product.name" /></div>
+    <div class="detail-copy">
+      <p class="eyebrow">{{ product.type || 'Ski gear' }} · {{ product.brand || 'SkiiShop selection' }}</p>
+      <h1 id="product-title">{{ product.name }}</h1>
+      <p class="detail-price">{{ product.price | currency:'VND':'symbol':'1.0-0' }}</p>
+      <p class="description">{{ product.description || 'A considered piece for your next day on the mountain.' }}</p>
+      <p class="availability" [class.unavailable]="product.quantityInStock === 0">{{ product.quantityInStock > 0 ? product.quantityInStock + ' in stock' : 'Currently out of stock' }}</p>
+      <button class="add-button" type="button" (click)="addToCart()" [disabled]="product.quantityInStock === 0">{{ product.quantityInStock > 0 ? 'Add to cart' : 'Out of stock' }}</button>
+      <p *ngIf="addedMessage" class="added-message" role="status">{{ addedMessage }} <a routerLink="/cart">View cart →</a></p>
+    </div>
+  </section>
+</main>

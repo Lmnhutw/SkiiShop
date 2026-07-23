@@ -1,4 +1,4 @@
-using Core.Abstractions;
+﻿using Core.Abstractions;
 using Infrastructure.Data;
 using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +55,10 @@ builder.Services
                 ?? builder.Configuration["ADMIN_API_KEY"];
         });
 builder.Services.AddAuthorization();
+builder.Services.AddCors(options => options.AddPolicy("Client", policy =>
+    policy.WithOrigins("http://localhost:4200")
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 var app = builder.Build();
@@ -73,6 +77,7 @@ catch (Exception ex)
 }
 
 app.UseHttpsRedirection();
+app.UseCors("Client");
 app.UseAuthentication();
 app.UseAuthorization();
 

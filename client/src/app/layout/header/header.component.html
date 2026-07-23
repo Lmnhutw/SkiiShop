@@ -1,1 +1,11 @@
-<p>header works!</p>
+﻿<header class="site-header">
+  <a class="brand" routerLink="/products" aria-label="SkiiShop home">
+    <span class="brand-mark">SS</span>
+    <span>SkiiShop</span>
+  </a>
+  <nav aria-label="Primary navigation">
+    <a routerLink="/products" routerLinkActive="active">Shop skis</a>
+    <a routerLink="/cart" routerLinkActive="active">Cart <span class="cart-badge">{{ cart.itemCount() }}</span></a>
+    <a routerLink="/admin/products" routerLinkActive="active">Admin</a>
+  </nav>
+</header>
